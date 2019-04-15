@@ -51,4 +51,4 @@ Get 1024-dimensional embedding for per-protein predictions:
 ```
 
 # Availability of task-specific predictions using SeqVec-based models
-[Link to Chris' website](https://embed.protein.properties/)
+[SeqVec predictions - Chris' Protein properties](https://embed.protein.properties/)
