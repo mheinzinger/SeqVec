@@ -23,12 +23,12 @@ Short example:
 Load pre-trained model:
 
 ```
-> from allennlp.commans.elmo import ElmoEmbedder
+> from allennlp.commands.elmo import ElmoEmbedder
 > from pathlib import Path
 > model_dir = Path('path_to_pretrained_SeqVec_directory')
 > weights = model_dir / 'weights.hdf5'
 > options = model_dir / 'options.json'
-> seqvec  = ElmoEmbedder(weights,options,cuda_device=0) # cuda_device=-1 for CPU
+> seqvec  = ElmoEmbedder(options,weights,cuda_device=0) # cuda_device=-1 for CPU
 ```
 
 Get embedding for amino acid sequence:
