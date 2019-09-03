@@ -41,6 +41,16 @@ Get embedding for amino acid sequence:
 > embedding = seqvec.embed_sentence( list(seq) ) # List-of-Lists with shape [3,L,1024]
 ```
 
+Batch embed sequences:
+
+```
+> seq1 = 'SEQWENCE' # your amino acid sequence
+> seq2 = 'PROTEIN'
+> seqs = [ list(seq1), list(seq2) ]
+> seqs.sort(key=len) # sorting is crucial for speed
+> embedding = seqvec.embed_sentences( seqs ) # returns: List-of-Lists with shape [3,L,1024]
+```
+
 Get 1024-dimensional embedding for per-residue predictions:
 
 ```
