@@ -12,6 +12,7 @@ Holds pre-trained SeqVec model for creating embeddings for amino acid sequences.
 # Model availability
 The ELMo model trained on UniRef50 (=SeqVec) is available at:
 [SeqVec-model](https://rostlab.org/~deepppi/seqvec.zip)
+
 The checkpoint for the pre-trained model is available at:
 [SeqVec-checkpoint](https://rostlab.org/~deepppi/seqvec_checkpoint.tar.gz)
 
