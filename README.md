@@ -11,7 +11,8 @@ Holds pre-trained SeqVec model for creating embeddings for amino acid sequences.
 **Conclusion**: We have shown that transfer learning can be used to capture biochemical or biophysical properties of protein sequences from large unlabeled sequence databases. The effectiveness of the proposed approach was showcased for different prediction tasks using only single protein sequences. SeqVec embeddings enable predictions that outperform even some methods using evolutionary information. Thus, they prove to condense the underlying principles of protein sequences. This might be the first step towards competitive predictions based only on single protein sequences.
 
 # t-SNE projections of SeqVec
-![Alt text](seqvec_tsne.png "Title")
+![2D t-SNE projections](seqvec_tsne.png "2D t-SNE projections of SeqVec")
+2D t-SNE projections of unsupervised SeqVec embeddings highlight different realities of proteins and their constituent parts, amino acids. Panels (b) to (d) are based on the same data set (Structural Classification of Proteins – extended (SCOPe) 2.07, redundancy reduced at 40%). For these plots, only subsets of SCOPe containing proteins with the annotation of interest (enzymatic activity (c) and kingdom (d)) may be displayed. **Panel (a)**: the embedding space confirms: the 20 standard amino acids are clustered according to their biochemical and biophysical properties, i.e. hydrophobicity, charge or size. The unique role of Cysteine (C, mostly hydrophobic and polar) is conserved. **Panel (b)**: SeqVec embeddings capture structural information as annotated in the main classes in SCOPe without ever having been explicitly trained on structural features. **Panel (c)**: many small, local clusters share function as given by the main classes in the Enzyme Commission Number (E.C.). **Panel (d)**: similarly, small, local clusters represent different kingdoms of life.
 
 # Requirements
 
@@ -73,5 +74,5 @@ Get 1024-dimensional embedding for per-protein predictions:
 > protein_embd = torch.tensor(embedding).sum(dim=0).mean(dim=0) # Vector with shape [1024]
 ```
 
-# Availability of task-specific predictions using SeqVec-based models
+# Web-service for Predictions based on SeqVec
 [SeqVec predictions - Chris' Protein properties](https://embed.protein.properties/)
