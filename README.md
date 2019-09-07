@@ -10,6 +10,9 @@ Holds pre-trained SeqVec model for creating embeddings for amino acid sequences.
 
 **Conclusion**: We have shown that transfer learning can be used to capture biochemical or biophysical properties of protein sequences from large unlabeled sequence databases. The effectiveness of the proposed approach was showcased for different prediction tasks using only single protein sequences. SeqVec embeddings enable predictions that outperform even some methods using evolutionary information. Thus, they prove to condense the underlying principles of protein sequences. This might be the first step towards competitive predictions based only on single protein sequences.
 
+# t-SNE projections of SeqVec
+![Alt text](seqvec_tsne.png "Title")
+
 # Requirements
 
 *  Python>=3.6.1
