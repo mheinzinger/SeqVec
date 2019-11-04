@@ -76,3 +76,15 @@ Get 1024-dimensional embedding for per-protein predictions:
 
 # Web-service for Predictions based on SeqVec
 [SeqVec predictions - Chris' Protein properties](https://embed.protein.properties/)
+
+# Bibtex-Reference
+```
+@article{heinzinger2019modeling,
+  title={Modeling the Language of Life-Deep Learning Protein Sequences},
+  author={Heinzinger, Michael and Elnaggar, Ahmed and Wang, Yu and Dallago, Christian and Nachaev, Dmitrii and Matthes, Florian and Rost, Burkhard},
+  journal={bioRxiv},
+  pages={614313},
+  year={2019},
+  publisher={Cold Spring Harbor Laboratory}
+}
+```
