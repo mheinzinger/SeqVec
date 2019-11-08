@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "seqvec_embedder"
+version = "0.1.0"
+description = "Embeeder tool for 'Modelling the Language of Life - Deep Learning Protein Sequences'"
+authors = ["Michael Heinzinger <mheinzinger@rostlab.org>"]
+repository = "https://github.com/Rostlab/SeqVec"
+license = "MIT"
+readme = "README.md"
+classifiers = [
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License"
+]
+
+[tool.poetry.dependencies]
+# allennlp wants that instead of ^3.6
+python = ">=3.6.1"
+tqdm = "^4.36"
+numpy = "^1.17"
+torch = "~1.2"
+allennlp = "^0.9.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.0"
+black = "19.10b0"
+
+[tool.poetry.scripts]
+seqvec_embedder = 'seqvec_embedder.seqvec_embedder:main'
+
+[tool.black]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.pytest_cache
+  | \.tox
+  | \.venv
+  | \dist
+  | \test-cache
+)/
+'''
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
