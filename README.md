@@ -1,6 +1,6 @@
 # SeqVec
 
-Repository for the paper [Modelling the Language of Life - Deep Learning Protein Sequences](https://www.biorxiv.org/content/10.1101/614313v2). 
+Repository for the paper [Modelling the Language of Life - Deep Learning Protein Sequences](https://www.biorxiv.org/content/10.1101/614313v3).
 Holds pre-trained SeqVec model for creating embeddings for amino acid sequences. Also, contains checkpoint for fine-tuning.
 
 # Abstract
@@ -14,12 +14,6 @@ Holds pre-trained SeqVec model for creating embeddings for amino acid sequences.
 ![2D t-SNE projections](seqvec_tsne.png "2D t-SNE projections of SeqVec")
 *2D t-SNE projections of unsupervised SeqVec embeddings highlight different realities of proteins and their constituent parts, amino acids.* Panels (b) to (d) are based on the same data set (Structural Classification of Proteins – extended (SCOPe) 2.07, redundancy reduced at 40%). For these plots, only subsets of SCOPe containing proteins with the annotation of interest (enzymatic activity (c) and kingdom (d)) may be displayed. **Panel (a)**: the embedding space confirms: the 20 standard amino acids are clustered according to their biochemical and biophysical properties, i.e. hydrophobicity, charge or size. The unique role of Cysteine (C, mostly hydrophobic and polar) is conserved. **Panel (b)**: SeqVec embeddings capture structural information as annotated in the main classes in SCOPe without ever having been explicitly trained on structural features. **Panel (c)**: many small, local clusters share function as given by the main classes in the Enzyme Commission Number (E.C.). **Panel (d)**: similarly, small, local clusters represent different kingdoms of life.
 
-# Requirements
-
-*  Python>=3.6.1
-*  torch>=0.4.1
-*  allennlp
-
 # Model availability
 The ELMo model trained on UniRef50 (=SeqVec) is available at:
 [SeqVec-model](https://rostlab.org/~deepppi/seqvec.zip)
@@ -27,51 +21,64 @@ The ELMo model trained on UniRef50 (=SeqVec) is available at:
 The checkpoint for the pre-trained model is available at:
 [SeqVec-checkpoint](https://rostlab.org/~deepppi/seqvec_checkpoint.tar.gz)
 
+# Installation
+
+```
+pip install seqvec_embedder
+```
+
 # Example
 For a general example on how to extract embeddings using ELMo, please check the 
 official allennlp ELMo website: [ELMo-Tutorial](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md)
+
+You can compute embeddings for a fasta file with the `seqvec_embedder` command:
+
+```
+seqvec_embedder -i sequences.fasta -o embeddings.npy
+```
 
 Short example:
 
 
 Load pre-trained model:
 
-```
-> from allennlp.commands.elmo import ElmoEmbedder
-> from pathlib import Path
-> model_dir = Path('path_to_pretrained_SeqVec_directory')
-> weights = model_dir / 'weights.hdf5'
-> options = model_dir / 'options.json'
-> seqvec  = ElmoEmbedder(options,weights,cuda_device=0) # cuda_device=-1 for CPU
+```python
+from allennlp.commands.elmo import ElmoEmbedder
+from pathlib import Path
+
+model_dir = Path('path/to/pretrained/SeqVec_directory')
+weights = model_dir / 'weights.hdf5'
+options = model_dir / 'options.json'
+seqvec  = ElmoEmbedder(options,weights, cuda_device=0) # cuda_device=-1 for CPU
 ```
 
 Get embedding for amino acid sequence:
 
-```
-> seq = 'SEQWENCE' # your amino acid sequence
-> embedding = seqvec.embed_sentence( list(seq) ) # List-of-Lists with shape [3,L,1024]
+```python
+seq = 'SEQWENCE' # your amino acid sequence
+embedding = seqvec.embed_sentence(list(seq)) # List-of-Lists with shape [3,L,1024]
 ```
 
 Batch embed sequences:
 
-```
-> seq1 = 'SEQWENCE' # your amino acid sequence
-> seq2 = 'PROTEIN'
-> seqs = [ list(seq1), list(seq2) ]
-> seqs.sort(key=len) # sorting is crucial for speed
-> embedding = seqvec.embed_sentences( seqs ) # returns: List-of-Lists with shape [3,L,1024]
+```python
+seq1 = 'SEQWENCE' # your amino acid sequence
+seq2 = 'PROTEIN'
+seqs = [list(seq1), list(seq2)]
+seqs.sort(key=len) # sorting is crucial for speed
+embedding = seqvec.embed_sentences(seqs) # returns: List-of-Lists with shape [3,L,1024]
 ```
 
 Get 1024-dimensional embedding for per-residue predictions:
 
-```
-> import torch
-> residue_embd = torch.tensor(embedding).sum(dim=0) # Tensor with shape [L,1024]
+```python
+import torch
+residue_embd = torch.tensor(embedding).sum(dim=0) # Tensor with shape [L,1024]
 ```
 
 Get 1024-dimensional embedding for per-protein predictions:
-```
-> protein_embd = torch.tensor(embedding).sum(dim=0).mean(dim=0) # Vector with shape [1024]
+```python
+protein_embd = torch.tensor(embedding).sum(dim=0).mean(dim=0) # Vector with shape [1024]
 ```
 
 # Web-service for Predictions based on SeqVec
