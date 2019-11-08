@@ -36,6 +36,12 @@ You can compute embeddings for a fasta file with the `seqvec_embedder` command:
 ```
 seqvec_embedder -i sequences.fasta -o embeddings.npy
 ```
+This script will write the embeddings to an numpy (npy) object array and the corresponding identifiers (as extracted from the header line in the fasta file) will be written to a json file. The sorting in the json file corresponds to the indexing in the npy file. The npy file can be loaded via:
+
+```
+# load embeddings from a npy file 
+data = np.load('/path/to/data.npy', allow_pickle=True) # shape=(n_proteins,)
+```
 
 Short example:
 
