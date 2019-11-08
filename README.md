@@ -43,7 +43,7 @@ This script will write the embeddings to an numpy (npy) object array and the cor
 data = np.load('/path/to/data.npy', allow_pickle=True) # shape=(n_proteins,)
 ```
 
-Short example:
+**How to integrate the embedder into an existing workflow:**
 
 
 Load pre-trained model:
