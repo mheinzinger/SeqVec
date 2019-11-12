@@ -79,13 +79,15 @@ def read_fasta_file(seq_dir: Path, split_char: str, id_field: int) -> Dict[str, 
     if seq_dir.is_file():  # if single fasta file should be processed
         read_fasta(seq_dict, seq_dir, split_char, id_field)
     else:  # if a directory was provided: read all files
-        assert seq_dir.is_dir()
+        assert seq_dir.is_dir(), f"'{seq_dir}' is neither a file nor a directory"
         for seq_path in seq_dir.glob("**/*fasta*"):
             read_fasta(seq_dict, seq_path, split_char, id_field)
     return seq_dict
 
 
-def process_embedding(embedding: np.ndarray, per_protein: bool) -> np.ndarray:
+def process_embedding(
+    embedding: np.ndarray, per_protein: bool, sum_layers: bool
+) -> np.ndarray:
     """
     Direct output of ELMo has shape (3,L,1024), with L being the protein's
     length, 3 being the number of layers used to train SeqVec (1 CharCNN, 2 LSTMs)
@@ -95,12 +97,15 @@ def process_embedding(embedding: np.ndarray, per_protein: bool) -> np.ndarray:
     If you want to reduce each protein to a fixed-size vector, regardless of its
     length, you can average over dimension L.
     """
-    embedding = torch.tensor(embedding)  # cast array to tensor
-    # sum over residue-embeddings of all layers (3k->1k)
-    embedding = embedding.sum(dim=0)
+    if sum_layers:
+        # sum over residue-embeddings of all layers (3k->1k)
+        embedding = embedding.sum(axis=0)
+    else:
+        # Stack the layer (3,L,1024) -> (L,3072)
+        embedding = np.concatenate(embedding, axis=1)
     if per_protein:  # if embeddings are required on the level of whole proteins
-        embedding = embedding.mean(dim=0)
-    return embedding.cpu().detach().numpy()  # cast to numpy array
+        embedding = embedding.mean(axis=0)
+    return embedding
 
 
 def single_sequence_processing(
@@ -140,6 +145,7 @@ def get_embeddings(
     split_char: str = "|",
     id_field: int = 1,
     cpu: bool = False,
+    sum_layers: bool = False,
     max_chars: int = 15000,
     per_protein: bool = False,
 ):
@@ -199,7 +205,9 @@ def get_embeddings(
             batch_results = single_sequence_processing(batch, model)
 
         for sequence_id, embedding in batch_results.items():
-            emb_dict[sequence_id] = process_embedding(embedding, per_protein)
+            emb_dict[sequence_id] = process_embedding(
+                embedding, per_protein, sum_layers
+            )
 
         # Reset batch
         batch = list()
@@ -316,6 +324,14 @@ def create_arg_parser():
         default=False,
         help="Flag for using CPU to compute embeddings. Default: False",
     )
+    parser.add_argument(
+        "--sum-layers",
+        dest="sum_layers",
+        type=bool,
+        default=True,
+        help="Whether to sum up the layers (1024 dimensions) or concatenate them (3072 dimensions). "
+        + "Default: True",
+    )
 
     parser.add_argument(
         "--verbose",
@@ -339,6 +355,7 @@ def main():
     per_prot = args.protein
     max_chars = args.batchsize
     verbose = args.verbose
+    sum_layers = args.sum_layers
 
     if verbose:
         # Otherwise the default level is warning
@@ -351,6 +368,7 @@ def main():
         split_char,
         id_field,
         cpu_flag,
+        sum_layers,
         max_chars,
         per_prot,
     )
