@@ -154,6 +154,10 @@ def get_embeddings(
             f"The output file must end with .npz or .npy,"
             f"but the path you provided ends with '{emb_path.suffix}'"
         )
+    if emb_path.suffix == ".npy" and not per_protein:
+        raise RuntimeError(
+            "You need to sum up per protein (`--protein True`) to save as .npy array"
+        )
     emb_dict = dict()
 
     seq_dict = read_fasta_file(seq_dir, split_char, id_field)
