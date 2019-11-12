@@ -143,6 +143,11 @@ def get_embeddings(
     max_chars: int = 15000,
     per_protein: bool = False,
 ):
+    if emb_path.suffix not in [".npz", ".npy"]:
+        raise RuntimeError(
+            f"The output file must end with .npz or .npy,"
+            f"but the path you provided ends with '{emb_path.suffix}'"
+        )
     emb_dict = dict()
 
     seq_dict = read_fasta_file(seq_dir, split_char, id_field)
@@ -206,15 +211,18 @@ def get_embeddings(
     logger.info("Total number of embeddings: {}".format(len(emb_dict)))
 
     # Write embeddings to file
-    logger.info(
-        "Writing embeddings to {} and the ids to {}".format(
-            emb_path, emb_path.with_suffix(".json")
-        )
-    )
-    # save elmo representations
-    with emb_path.with_suffix(".json").open("w") as id_file:
-        json.dump(list(emb_dict.keys()), id_file)
-    np.save(str(emb_path), np.asarray(list(emb_dict.values())))
+    if emb_path.suffix == ".npy":
+        label_file = emb_path.with_suffix(".json")
+        logger.info(f"Writing embeddings to {emb_path} and the ids to {label_file}")
+        # save elmo representations
+        with label_file.open("w") as id_file:
+            json.dump(list(emb_dict.keys()), id_file)
+        # noinspection PyTypeChecker
+        np.save(emb_path, np.asarray(list(emb_dict.values())))
+    else:
+        logger.info(f"Writing embeddings to {emb_path}")
+        # With checked that the suffix can only be .npz
+        np.savez(emb_path, emb_dict)
 
 
 def create_arg_parser():
@@ -246,8 +254,8 @@ def create_arg_parser():
         "--output",
         required=True,
         type=Path,
-        help="A path to a file for saving the created embeddings as NumPy .npy file. "
-        + "A .json file with the sequence ids will be created next to this file",
+        help="A path to a file for saving the created embeddings. It either be an .npz or an .npy file. "
+        + "If you chose .npy, a .json file with the sequence ids will be created next to this file",
     )
 
     # Path to model (optoinal)
@@ -333,7 +341,7 @@ def main():
     verbose = args.verbose
 
     if verbose:
-        # Oterwise the default level is warning
+        # Otherwise the default level is warning
         logger.setLevel(logging.INFO)
 
     get_embeddings(
