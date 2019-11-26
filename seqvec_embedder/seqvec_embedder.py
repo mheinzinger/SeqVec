@@ -7,7 +7,7 @@ import json
 import logging
 import urllib.request
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Generator
 
 import h5py
 import numpy as np
@@ -141,7 +141,6 @@ def single_sequence_processing(
 
 def get_embeddings(
     seq_dir: Path,
-    emb_path: Path,
     model_dir: Path,
     split_char: str = "|",
     id_field: int = 1,
@@ -149,24 +148,11 @@ def get_embeddings(
     sum_layers: bool = False,
     max_chars: int = 15000,
     per_protein: bool = False,
-):
-    if emb_path.suffix == ".h5":
-        hf = h5py.File(str(emb_path), "w")
-    elif emb_path.suffix == ".npz":
-        pass
-    elif emb_path.suffix == ".npy":
-        if not per_protein:
-            raise RuntimeError(
-                "You need to sum up per protein (`--protein True`) to save as .npy array"
-            )
-    else:
-        raise RuntimeError(
-            f"The output file must end with .npz, .npy or .h5,"
-            f"but the path you provided ends with '{emb_path.suffix}'"
-        )
+) -> Generator[Tuple[str, np.ndarray], None, None]:
+    """ Lazily generate all embeddings.
 
-    emb_dict = dict()
-
+    You can use this function if you want to do postprocessing or need a custom output format.
+    """
     seq_dict = read_fasta_file(seq_dir, split_char, id_field)
 
     # Sort sequences
@@ -216,40 +202,55 @@ def get_embeddings(
             batch_results = single_sequence_processing(batch, model)
 
         for sequence_id, embedding in batch_results.items():
-            emb_dict[sequence_id] = process_embedding(
-                embedding, per_protein, sum_layers
-            )
-
-        if emb_path.suffix == ".h5":
-            for sequence_id, embedding in emb_dict.items():
-                # noinspection PyUnboundLocalVariable
-                hf.create_dataset(sequence_id, data=embedding)
-            emb_dict = dict()
+            yield sequence_id, process_embedding(embedding, per_protein, sum_layers)
 
         # Reset batch
         batch = list()
         length_counter = 0
 
-    if not emb_dict and not emb_path.suffix == ".h5":
-        raise RuntimeError("Embedding dictionary is empty!")
 
-    logger.info("Total number of embeddings: {}".format(len(emb_dict)))
-
-    # Write embeddings to file (or close the .h5 file)
+def save_from_generator(
+    emb_path: Path,
+    per_protein: bool,
+    the_generator: Generator[Tuple[str, np.ndarray], None, None],
+):
     if emb_path.suffix == ".h5":
-        hf.close()
-    elif emb_path.suffix == ".npy":
-        label_file = emb_path.with_suffix(".json")
-        logger.info(f"Writing embeddings to {emb_path} and the ids to {label_file}")
-        # save elmo representations
-        with label_file.open("w") as id_file:
-            json.dump(list(emb_dict.keys()), id_file)
-        # noinspection PyTypeChecker
-        np.save(emb_path, np.asarray(list(emb_dict.values())))
+        with h5py.File(str(emb_path), "w") as hf:
+            for sequence_id, embedding in the_generator:
+                if emb_path.suffix == ".h5":
+                    # noinspection PyUnboundLocalVariable
+                    hf.create_dataset(sequence_id, data=embedding)
+    elif emb_path.suffix == ".npz" or emb_path.suffix == ".npy":
+        if not per_protein:
+            raise RuntimeError(
+                "You need to sum up per protein (`--protein True`) to save as .npy array"
+            )
+
+        emb_dict = dict()
+        for sequence_id, embedding in the_generator:
+            emb_dict[sequence_id] = embedding
+
+        if not emb_dict:
+            raise RuntimeError("Embedding dictionary is empty!")
+        logger.info("Total number of embeddings: {}".format(len(emb_dict)))
+
+        if emb_path.suffix == ".npy":
+            label_file = emb_path.with_suffix(".json")
+            logger.info(f"Writing embeddings to {emb_path} and the ids to {label_file}")
+            # save elmo representations
+            with label_file.open("w") as id_file:
+                json.dump(list(emb_dict.keys()), id_file)
+            # noinspection PyTypeChecker
+            np.save(emb_path, np.asarray(list(emb_dict.values())))
+        else:
+            logger.info(f"Writing embeddings to {emb_path}")
+            # With checked that the suffix can only be .npz
+            np.savez(emb_path, emb_dict)
     else:
-        logger.info(f"Writing embeddings to {emb_path}")
-        # With checked that the suffix can only be .npz
-        np.savez(emb_path, emb_dict)
+        raise RuntimeError(
+            f"The output file must end with .npz, .npy or .h5,"
+            f"but the path you provided ends with '{emb_path.suffix}'"
+        )
 
 
 def create_arg_parser():
@@ -380,9 +381,8 @@ def main():
         # Otherwise the default level is warning
         logger.setLevel(logging.INFO)
 
-    get_embeddings(
+    embeddings_generator = get_embeddings(
         seq_dir,
-        emb_path,
         model_dir,
         split_char,
         id_field,
@@ -391,6 +391,7 @@ def main():
         max_chars,
         per_prot,
     )
+    save_from_generator(emb_path, per_prot, embeddings_generator)
 
 
 if __name__ == "__main__":
