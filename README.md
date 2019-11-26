@@ -27,7 +27,12 @@ The checkpoint for the pre-trained model is available at:
 pip install seqvec_embedder
 ```
 
+We are working on a python package with more embedders and a commong interface to them; see [bio_embeddings](https://github.com/sacdallago/bio_embeddings)
+
 # Example
+
+In the [bio_embeddings](https://github.com/sacdallago/bio_embeddings) github repo, you can find examples in the `notebooks` folder.
+
 For a general example on how to extract embeddings using ELMo, please check the 
 official allennlp ELMo website: [ELMo-Tutorial](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md)
 
