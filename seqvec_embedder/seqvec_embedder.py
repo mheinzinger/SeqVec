@@ -9,6 +9,7 @@ import urllib.request
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import h5py
 import numpy as np
 import torch
 from allennlp.commands.elmo import ElmoEmbedder
@@ -149,15 +150,21 @@ def get_embeddings(
     max_chars: int = 15000,
     per_protein: bool = False,
 ):
-    if emb_path.suffix not in [".npz", ".npy"]:
+    if emb_path.suffix == ".h5":
+        hf = h5py.File(str(emb_path), "w")
+    elif emb_path.suffix == ".npz":
+        pass
+    elif emb_path.suffix == ".npy":
+        if not per_protein:
+            raise RuntimeError(
+                "You need to sum up per protein (`--protein True`) to save as .npy array"
+            )
+    else:
         raise RuntimeError(
-            f"The output file must end with .npz or .npy,"
+            f"The output file must end with .npz, .npy or .h5,"
             f"but the path you provided ends with '{emb_path.suffix}'"
         )
-    if emb_path.suffix == ".npy" and not per_protein:
-        raise RuntimeError(
-            "You need to sum up per protein (`--protein True`) to save as .npy array"
-        )
+
     emb_dict = dict()
 
     seq_dict = read_fasta_file(seq_dir, split_char, id_field)
@@ -213,17 +220,25 @@ def get_embeddings(
                 embedding, per_protein, sum_layers
             )
 
+        if emb_path.suffix == ".h5":
+            for sequence_id, embedding in emb_dict.items():
+                # noinspection PyUnboundLocalVariable
+                hf.create_dataset(sequence_id, data=embedding)
+            emb_dict = dict()
+
         # Reset batch
         batch = list()
         length_counter = 0
 
-    if not emb_dict:
+    if not emb_dict and not emb_path.suffix == ".h5":
         raise RuntimeError("Embedding dictionary is empty!")
 
     logger.info("Total number of embeddings: {}".format(len(emb_dict)))
 
-    # Write embeddings to file
-    if emb_path.suffix == ".npy":
+    # Write embeddings to file (or close the .h5 file)
+    if emb_path.suffix == ".h5":
+        hf.close()
+    elif emb_path.suffix == ".npy":
         label_file = emb_path.with_suffix(".json")
         logger.info(f"Writing embeddings to {emb_path} and the ids to {label_file}")
         # save elmo representations
