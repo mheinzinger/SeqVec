@@ -259,7 +259,7 @@ def create_arg_parser():
     # Instantiate the parser
     parser = argparse.ArgumentParser(
         description=(
-            "seqvec_embedder.py creates ELMo embeddings for a given text "
+            "seqvec.py creates ELMo embeddings for a given text "
             + " file containing sequence(s) in FASTA-format."
         )
     )

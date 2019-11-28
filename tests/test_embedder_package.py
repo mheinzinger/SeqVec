@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-from seqvec_embedder.seqvec_embedder import get_embeddings, save_from_generator
+from seqvec.seqvec import get_embeddings, save_from_generator
 
 
 def test_embedder():

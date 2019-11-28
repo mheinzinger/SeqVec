@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "seqvec_embedder"
+name = "seqvec"
 version = "0.1.0"
 description = "Embeeder tool for 'Modelling the Language of Life - Deep Learning Protein Sequences'"
 authors = ["Michael Heinzinger <mheinzinger@rostlab.org>"]
@@ -26,7 +26,7 @@ pytest = "^3.0"
 black = "19.10b0"
 
 [tool.poetry.scripts]
-seqvec_embedder = 'seqvec_embedder.seqvec_embedder:main'
+seqvec = 'seqvec.seqvec:main'
 
 [tool.black]
 include = '\.pyi?$'
