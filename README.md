@@ -24,7 +24,7 @@ The checkpoint for the pre-trained model is available at:
 # Installation
 
 ```
-pip install seqvec_embedder
+pip install seqvec
 ```
 
 We are working on a python package with more embedders and a commong interface to them; see [bio_embeddings](https://github.com/sacdallago/bio_embeddings)
@@ -36,16 +36,28 @@ In the [bio_embeddings](https://github.com/sacdallago/bio_embeddings) github rep
 For a general example on how to extract embeddings using ELMo, please check the 
 official allennlp ELMo website: [ELMo-Tutorial](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md)
 
-You can compute embeddings for a fasta file with the `seqvec_embedder` command:
+You can compute embeddings for a fasta file with the `seqvec` command. Add `--protein True` to get an embedding per protein instead of per residue.
 
 ```
-seqvec_embedder -i sequences.fasta -o embeddings.npy
+seqvec -i sequences.fasta -o embeddings.npz
 ```
-This script will write the embeddings to an numpy (npy) object array and the corresponding identifiers (as extracted from the header line in the fasta file) will be written to a json file. The sorting in the json file corresponds to the indexing in the npy file. The npy file can be loaded via:
 
+Load the embeddings with numpy:
+
+```python
+import numpy as np
+data = np.load("embeddings.npz")  # type: Dict[str, np.ndarray]
 ```
-# load embeddings from a npy file 
-data = np.load('/path/to/data.npy', allow_pickle=True) # shape=(n_proteins,)
+
+If you specify `.npy` as output format (e.g. with `-o embeddings.npy`), the script will save the embeddings as an numpy array and the corresponding identifiers (as extracted from the header line in the fasta file) in a json file besides it. The sorting in the json file corresponds to the indexing in the npy file. The npy file can be loaded via:
+
+```python
+import json
+import numpy as np
+
+data = np.load("embeddings.npy") # shape=(n_proteins,)
+with open("embeddings.json") as fp:
+    labels = json.load(fp)
 ```
 
 **How to integrate the embedder into an existing workflow:**
@@ -60,14 +72,14 @@ from pathlib import Path
 model_dir = Path('path/to/pretrained/SeqVec_directory')
 weights = model_dir / 'weights.hdf5'
 options = model_dir / 'options.json'
-seqvec  = ElmoEmbedder(options,weights, cuda_device=0) # cuda_device=-1 for CPU
+embedder = ElmoEmbedder(options,weights, cuda_device=0) # cuda_device=-1 for CPU
 ```
 
 Get embedding for amino acid sequence:
 
 ```python
 seq = 'SEQWENCE' # your amino acid sequence
-embedding = seqvec.embed_sentence(list(seq)) # List-of-Lists with shape [3,L,1024]
+embedding = embedder.embed_sentence(list(seq)) # List-of-Lists with shape [3,L,1024]
 ```
 
 Batch embed sequences:
@@ -77,7 +89,7 @@ seq1 = 'SEQWENCE' # your amino acid sequence
 seq2 = 'PROTEIN'
 seqs = [list(seq1), list(seq2)]
 seqs.sort(key=len) # sorting is crucial for speed
-embedding = seqvec.embed_sentences(seqs) # returns: List-of-Lists with shape [3,L,1024]
+embedding = embedder.embed_sentences(seqs) # returns: List-of-Lists with shape [3,L,1024]
 ```
 
 Get 1024-dimensional embedding for per-residue predictions:

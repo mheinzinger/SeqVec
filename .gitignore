@@ -6,3 +6,4 @@ setup.py
 __pycache__
 .tox
 dist/
+model/

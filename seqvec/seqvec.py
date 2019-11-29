@@ -7,8 +7,9 @@ import json
 import logging
 import urllib.request
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Generator
 
+import h5py
 import numpy as np
 import torch
 from allennlp.commands.elmo import ElmoEmbedder
@@ -79,13 +80,15 @@ def read_fasta_file(seq_dir: Path, split_char: str, id_field: int) -> Dict[str, 
     if seq_dir.is_file():  # if single fasta file should be processed
         read_fasta(seq_dict, seq_dir, split_char, id_field)
     else:  # if a directory was provided: read all files
-        assert seq_dir.is_dir()
+        assert seq_dir.is_dir(), f"'{seq_dir}' is neither a file nor a directory"
         for seq_path in seq_dir.glob("**/*fasta*"):
             read_fasta(seq_dict, seq_path, split_char, id_field)
     return seq_dict
 
 
-def process_embedding(embedding: np.ndarray, per_protein: bool) -> np.ndarray:
+def process_embedding(
+    embedding: np.ndarray, per_protein: bool, sum_layers: bool
+) -> np.ndarray:
     """
     Direct output of ELMo has shape (3,L,1024), with L being the protein's
     length, 3 being the number of layers used to train SeqVec (1 CharCNN, 2 LSTMs)
@@ -95,12 +98,15 @@ def process_embedding(embedding: np.ndarray, per_protein: bool) -> np.ndarray:
     If you want to reduce each protein to a fixed-size vector, regardless of its
     length, you can average over dimension L.
     """
-    embedding = torch.tensor(embedding)  # cast array to tensor
-    # sum over residue-embeddings of all layers (3k->1k)
-    embedding = embedding.sum(dim=0)
+    if sum_layers:
+        # sum over residue-embeddings of all layers (3k->1k)
+        embedding = embedding.sum(axis=0)
+    else:
+        # Stack the layer (3,L,1024) -> (L,3072)
+        embedding = np.concatenate(embedding, axis=1)
     if per_protein:  # if embeddings are required on the level of whole proteins
-        embedding = embedding.mean(dim=0)
-    return embedding.cpu().detach().numpy()  # cast to numpy array
+        embedding = embedding.mean(axis=0)
+    return embedding
 
 
 def single_sequence_processing(
@@ -135,16 +141,18 @@ def single_sequence_processing(
 
 def get_embeddings(
     seq_dir: Path,
-    emb_path: Path,
     model_dir: Path,
     split_char: str = "|",
     id_field: int = 1,
     cpu: bool = False,
+    sum_layers: bool = False,
     max_chars: int = 15000,
     per_protein: bool = False,
-):
-    emb_dict = dict()
+) -> Generator[Tuple[str, np.ndarray], None, None]:
+    """ Lazily generate all embeddings.
 
+    You can use this function if you want to do postprocessing or need a custom output format.
+    """
     seq_dict = read_fasta_file(seq_dir, split_char, id_field)
 
     # Sort sequences
@@ -194,27 +202,55 @@ def get_embeddings(
             batch_results = single_sequence_processing(batch, model)
 
         for sequence_id, embedding in batch_results.items():
-            emb_dict[sequence_id] = process_embedding(embedding, per_protein)
+            yield sequence_id, process_embedding(embedding, per_protein, sum_layers)
 
         # Reset batch
         batch = list()
         length_counter = 0
 
-    if not emb_dict:
-        raise RuntimeError("Embedding dictionary is empty!")
 
-    logger.info("Total number of embeddings: {}".format(len(emb_dict)))
+def save_from_generator(
+    emb_path: Path,
+    per_protein: bool,
+    the_generator: Generator[Tuple[str, np.ndarray], None, None],
+):
+    if emb_path.suffix == ".h5":
+        with h5py.File(str(emb_path), "w") as hf:
+            for sequence_id, embedding in the_generator:
+                if emb_path.suffix == ".h5":
+                    # noinspection PyUnboundLocalVariable
+                    hf.create_dataset(sequence_id, data=embedding)
+    elif emb_path.suffix == ".npz" or emb_path.suffix == ".npy":
+        if not per_protein:
+            raise RuntimeError(
+                "You need to sum up per protein (`--protein True`) to save as .npy array"
+            )
 
-    # Write embeddings to file
-    logger.info(
-        "Writing embeddings to {} and the ids to {}".format(
-            emb_path, emb_path.with_suffix(".json")
+        emb_dict = dict()
+        for sequence_id, embedding in the_generator:
+            emb_dict[sequence_id] = embedding
+
+        if not emb_dict:
+            raise RuntimeError("Embedding dictionary is empty!")
+        logger.info("Total number of embeddings: {}".format(len(emb_dict)))
+
+        if emb_path.suffix == ".npy":
+            label_file = emb_path.with_suffix(".json")
+            logger.info(f"Writing embeddings to {emb_path} and the ids to {label_file}")
+            # save elmo representations
+            with label_file.open("w") as id_file:
+                json.dump(list(emb_dict.keys()), id_file)
+            # noinspection PyTypeChecker
+            np.save(emb_path, np.asarray(list(emb_dict.values())))
+        else:
+            logger.info(f"Writing embeddings to {emb_path}")
+            # With checked that the suffix can only be .npz
+            np.savez(emb_path, emb_dict)
+    else:
+        raise RuntimeError(
+            f"The output file must end with .npz, .npy or .h5,"
+            f"but the path you provided ends with '{emb_path.suffix}'"
         )
-    )
-    # save elmo representations
-    with emb_path.with_suffix(".json").open("w") as id_file:
-        json.dump(list(emb_dict.keys()), id_file)
-    np.save(str(emb_path), np.asarray(list(emb_dict.values())))
 
 
 def create_arg_parser():
@@ -223,7 +259,7 @@ def create_arg_parser():
     # Instantiate the parser
     parser = argparse.ArgumentParser(
         description=(
-            "seqvec_embedder.py creates ELMo embeddings for a given text "
+            "seqvec.py creates ELMo embeddings for a given text "
             + " file containing sequence(s) in FASTA-format."
         )
     )
@@ -246,8 +282,8 @@ def create_arg_parser():
         "--output",
         required=True,
         type=Path,
-        help="A path to a file for saving the created embeddings as NumPy .npy file. "
-        + "A .json file with the sequence ids will be created next to this file",
+        help="A path to a file for saving the created embeddings. It either be an .npz or an .npy file. "
+        + "If you chose .npy, a .json file with the sequence ids will be created next to this file",
     )
 
     # Path to model (optoinal)
@@ -308,6 +344,14 @@ def create_arg_parser():
         default=False,
         help="Flag for using CPU to compute embeddings. Default: False",
     )
+    parser.add_argument(
+        "--sum-layers",
+        dest="sum_layers",
+        type=bool,
+        default=True,
+        help="Whether to sum up the layers (1024 dimensions) or concatenate them (3072 dimensions). "
+        + "Default: True",
+    )
 
     parser.add_argument(
         "--verbose",
@@ -331,21 +375,23 @@ def main():
     per_prot = args.protein
     max_chars = args.batchsize
     verbose = args.verbose
+    sum_layers = args.sum_layers
 
     if verbose:
-        # Oterwise the default level is warning
+        # Otherwise the default level is warning
         logger.setLevel(logging.INFO)
 
-    get_embeddings(
+    embeddings_generator = get_embeddings(
         seq_dir,
-        emb_path,
         model_dir,
         split_char,
         id_field,
         cpu_flag,
+        sum_layers,
         max_chars,
         per_prot,
     )
+    save_from_generator(emb_path, per_prot, embeddings_generator)
 
 
 if __name__ == "__main__":
