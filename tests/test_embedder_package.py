@@ -13,7 +13,7 @@ def test_embedder():
         path = Path(temp_dir) / "embeddings.npy"
         model_dir = Path("test-cache")
         embeddings_generator = get_embeddings(
-            seq_dir, model_dir, "|", 1, False, False, 15000, True
+            seq_dir, model_dir, "|", 1, False, True, 15000, True
         )
         save_from_generator(path, True, embeddings_generator)
         expected = np.load("test-data/embeddings.npy")
