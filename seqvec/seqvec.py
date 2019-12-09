@@ -7,7 +7,7 @@ import json
 import logging
 import urllib.request
 from pathlib import Path
-from typing import Dict, List, Tuple, Generator
+from typing import Dict, List, Tuple, Generator, Optional
 
 import h5py
 import numpy as np
@@ -16,6 +16,8 @@ from allennlp.commands.elmo import ElmoEmbedder
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+EmbedderReturnType = Generator[Tuple[str, Optional[np.ndarray]], None, None]
 
 
 def get_elmo_model(model_dir: Path, cpu: bool) -> ElmoEmbedder:
@@ -32,12 +34,12 @@ def get_elmo_model(model_dir: Path, cpu: bool) -> ElmoEmbedder:
         repo_link = "http://rostlab.org/~deepppi/embedding_repo/embedding_models/seqvec"
         options_link = repo_link + "/options.json"
         weights_link = repo_link + "/weights.hdf5"
-        urllib.request.urlretrieve(options_link, options_path)
-        urllib.request.urlretrieve(weights_link, weights_path)
+        urllib.request.urlretrieve(options_link, str(options_path))
+        urllib.request.urlretrieve(weights_link, str(weights_path))
 
     cuda_device = 0 if torch.cuda.is_available() and not cpu else -1
     logger.info("Loading the model")
-    # TODO: Remove the string casting once the typing fixes in allennlp are released
+    # The string casting comes from a typing bug in allennlp
     # https://github.com/allenai/allennlp/pull/3358
     return ElmoEmbedder(
         weight_file=str(weights_path),
@@ -111,7 +113,7 @@ def process_embedding(
 
 def single_sequence_processing(
     batch: List[Tuple[str, str]], model: ElmoEmbedder
-) -> Dict[str, np.ndarray]:
+) -> EmbedderReturnType:
     """
     Single sequence processing in case of runtime error due to
     a) very long sequence or b) too large batch size
@@ -120,23 +122,22 @@ def single_sequence_processing(
 
     Returns unprocessed embeddings
     """
-    batch_results_dict = dict()
     for sample_id, seq in batch:
         try:
             embedding = model.embed_sentence(list(seq))
+            yield sample_id, embedding
+
         except RuntimeError as e:
             logger.error(
-                "RuntimeError for {} (len={}): {}".format(sample_id, len(seq), e)
+                "RuntimeError for {} with {} residues: {}".format(
+                    sample_id, len(seq), e
+                )
             )
             logger.error(
-                "Single sequence processing not possible. Skipping seq. .."
-                + "Consider splitting the sequence into smaller seqs or process on CPU."
+                "Single sequence processing failed. Skipping this sequence. "
+                + "Consider splitting the sequence into smaller parts or using the CPU."
             )
-            continue
-
-        # if protein was embedded successfully --> save embedding
-        batch_results_dict[sample_id] = embedding
-    return batch_results_dict
+            yield sample_id, None
 
 
 def get_embeddings(
@@ -148,7 +149,7 @@ def get_embeddings(
     sum_layers: bool = False,
     max_chars: int = 15000,
     per_protein: bool = False,
-) -> Generator[Tuple[str, np.ndarray], None, None]:
+) -> EmbedderReturnType:
     """ Lazily generate all embeddings.
 
     You can use this function if you want to do postprocessing or need a custom output format.
@@ -192,17 +193,15 @@ def get_embeddings(
         try:  # try to get the embedding for the current sequnce
             embeddings = model.embed_batch(tokens)
             assert len(batch) == len(embeddings)
-            batch_results = dict(zip(batch_ids, embeddings))
+            for sequence_id, embedding in zip(batch_ids, embeddings):
+                yield sequence_id, process_embedding(embedding, per_protein, sum_layers)
         except RuntimeError as e:
             logger.error(
                 "Error processing batch of {} sequences: {}".format(len(batch), e)
             )
             logger.error("Sequences in the failing batch: {}".format(batch_ids))
             logger.error("Starting single sequence processing")
-            batch_results = single_sequence_processing(batch, model)
-
-        for sequence_id, embedding in batch_results.items():
-            yield sequence_id, process_embedding(embedding, per_protein, sum_layers)
+            yield from single_sequence_processing(batch, model)
 
         # Reset batch
         batch = list()
@@ -228,6 +227,9 @@ def save_from_generator(
 
         emb_dict = dict()
         for sequence_id, embedding in the_generator:
+            if embedding is None:
+                # The generator code already showed an error
+                continue
             emb_dict[sequence_id] = embedding
 
         if not emb_dict:
