@@ -1,6 +1,6 @@
 # SeqVec
 
-Repository for the paper [Modelling the Language of Life - Deep Learning Protein Sequences](https://www.biorxiv.org/content/10.1101/614313v3).
+Repository for the paper [Modeling aspects of the language of life through transfer-learning protein sequences](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-019-3220-8).
 Holds pre-trained SeqVec model for creating embeddings for amino acid sequences. Also, contains checkpoint for fine-tuning.
 
 # Abstract
@@ -110,11 +110,13 @@ protein_embd = torch.tensor(embedding).sum(dim=0).mean(dim=0) # Vector with shap
 # Bibtex-Reference
 ```
 @article{heinzinger2019modeling,
-  title={Modeling the Language of Life-Deep Learning Protein Sequences},
-  author={Heinzinger, Michael and Elnaggar, Ahmed and Wang, Yu and Dallago, Christian and Nachaev, Dmitrii and Matthes, Florian and Rost, Burkhard},
-  journal={bioRxiv},
-  pages={614313},
+  title={Modeling aspects of the language of life through transfer-learning protein sequences},
+  author={Heinzinger, Michael and Elnaggar, Ahmed and Wang, Yu and Dallago, Christian and Nechaev, Dmitrii and Matthes, Florian and Rost, Burkhard},
+  journal={BMC bioinformatics},
+  volume={20},
+  number={1},
+  pages={723},
   year={2019},
-  publisher={Cold Spring Harbor Laboratory}
+  publisher={Springer}
 }
 ```
