@@ -333,9 +333,9 @@ def create_arg_parser():
         "--id",
         type=int,
         default=1,
-        help="The index for the uniprot identifier field after splitting the "
+        help="The zero based index for the uniprot identifier field after splitting the "
         + "FASTA header after each symbole in ['|', '#', ':', ' ']. "
-        + "Use -1 to deactivate splitting"
+        + "Use -1 to deactivate splitting. "
         + "Default: 1",
     )
 
