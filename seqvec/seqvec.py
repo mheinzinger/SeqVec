@@ -342,23 +342,23 @@ def create_arg_parser():
     # Whether to use CPU or GPU
     parser.add_argument(
         "--cpu",
-        type=bool,
+        action="store_true",
         default=False,
         help="Flag for using CPU to compute embeddings. Default: False",
     )
     parser.add_argument(
-        "--sum-layers",
+        "--no-sum-layers",
         dest="sum_layers",
-        type=bool,
+        action="store_false",
         default=True,
         help="Whether to sum up the layers (1024 dimensions) or concatenate them (3072 dimensions). "
         + "Default: True",
     )
 
     parser.add_argument(
-        "--verbose",
-        type=bool,
-        default=True,
+        "--silent",
+        action="store_true",
+        default=False,
         help="Embedder gives some information while processing. Default: True",
     )
     return parser
@@ -376,7 +376,7 @@ def main():
     cpu_flag = args.cpu
     per_prot = args.protein
     max_chars = args.batchsize
-    verbose = args.verbose
+    verbose = not args.silent
     sum_layers = args.sum_layers
 
     if verbose:
