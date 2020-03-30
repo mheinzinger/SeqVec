@@ -1,3 +1,6 @@
+# Note
+**Please find the most recent version of SeqVec here:** official [SeqVec repo](https://github.com/rostlab/SeqVec) 
+
 # SeqVec
 
 Repository for the paper [Modeling aspects of the language of life through transfer-learning protein sequences](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-019-3220-8).
