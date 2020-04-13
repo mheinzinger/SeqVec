@@ -15,7 +15,7 @@ SPLIT_CHAR = "|"
 ID_FIELD = 1
 CPU_FLAG = False
 SUM_LAYERS = True
-MAX_CHARS = 15000
+BATCHSIZE = 15000
 PER_PROTEIN = True
 
 
@@ -56,7 +56,7 @@ def test_embedder():
             ID_FIELD,
             CPU_FLAG,
             SUM_LAYERS,
-            MAX_CHARS,
+            BATCHSIZE,
             PER_PROTEIN,
         )
         save_from_generator(path, PER_PROTEIN, embeddings_generator)
@@ -75,7 +75,7 @@ def test_single_sequence_processing():
         seq_dir = Path("test-data/single_sequence_processing.fasta")
         model_dir = Path("test-cache")
         embeddings_generator = get_embeddings(
-            seq_dir, model_dir, cpu=True, max_chars=400
+            seq_dir, model_dir, cpu=True, batchsize=400
         )
         for key, value in list(embeddings_generator):
             assert value.shape[1:] == (3072,)
