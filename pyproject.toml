@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "seqvec"
-version = "0.2.0"
+version = "0.2.1"
 description = "Embeeder tool for 'Modelling the Language of Life - Deep Learning Protein Sequences'"
 authors = ["Michael Heinzinger <mheinzinger@rostlab.org>"]
 repository = "https://github.com/Rostlab/SeqVec"
