@@ -201,7 +201,8 @@ def get_embeddings(
             )
             logger.error("Sequences in the failing batch: {}".format(batch_ids))
             logger.error("Starting single sequence processing")
-            yield from single_sequence_processing(batch, model)
+            for sequence_id, embedding in single_sequence_processing(batch, model):
+                yield sequence_id, process_embedding(embedding, per_protein, sum_layers)
 
         # Reset batch
         batch = list()
