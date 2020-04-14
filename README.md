@@ -103,6 +103,11 @@ Get 1024-dimensional embedding for per-protein predictions:
 ```python
 protein_embd = torch.tensor(embedding).sum(dim=0).mean(dim=0) # Vector with shape [1024]
 ```
+# FAQ
+**Torch version conflict**
+If you encounter a version conflict while pip-installing seqvec (```ERROR: No matching distribution found for torch<1.3,>=1.2 (from seqvec)```), creating a new conda-environment with Python 3.7 can resolve your issue. 
+
+
 
 # Web-service for Predictions based on SeqVec
 [SeqVec predictions - Chris' Protein properties](https://embed.protein.properties/)
