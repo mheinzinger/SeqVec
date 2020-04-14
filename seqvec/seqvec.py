@@ -117,7 +117,7 @@ def single_sequence_processing(
     """
     Single sequence processing in case of runtime error due to
     a) very long sequence or b) too large batch size
-    If this fails, you might want to consider lowering max_chars and/or
+    If this fails, you might want to consider lowering batchsize and/or
     cutting very long sequences into smaller chunks
 
     Returns unprocessed embeddings
@@ -147,7 +147,7 @@ def get_embeddings(
     id_field: int = 1,
     cpu: bool = False,
     sum_layers: bool = False,
-    max_chars: int = 15000,
+    batchsize: int = 15000,
     per_protein: bool = False,
 ) -> EmbedderReturnType:
     """ Lazily generate all embeddings.
@@ -178,11 +178,11 @@ def get_embeddings(
 
         # Transform list of batches to embeddings
         # if a) max. number of chars. for a batch is reached,
-        # if b) sequence is longer than half max_chars (avoids RuntimeError for very long seqs.)
+        # if b) sequence is longer than half batchsize (avoids RuntimeError for very long seqs.)
         # if c) the last sequence is reached
         if not (
-            length_counter > max_chars
-            or len(sequence) > max_chars / 2
+            length_counter > batchsize
+            or len(sequence) > batchsize / 2
             or index == len(seq_dict) - 1
         ):
             continue
@@ -201,7 +201,8 @@ def get_embeddings(
             )
             logger.error("Sequences in the failing batch: {}".format(batch_ids))
             logger.error("Starting single sequence processing")
-            yield from single_sequence_processing(batch, model)
+            for sequence_id, embedding in single_sequence_processing(batch, model):
+                yield sequence_id, process_embedding(embedding, per_protein, sum_layers)
 
         # Reset batch
         batch = list()
@@ -375,7 +376,7 @@ def main():
     id_field = args.id
     cpu_flag = args.cpu
     per_prot = args.protein
-    max_chars = args.batchsize
+    batchsize = args.batchsize
     verbose = not args.silent
     sum_layers = args.sum_layers
 
@@ -390,7 +391,7 @@ def main():
         id_field,
         cpu_flag,
         sum_layers,
-        max_chars,
+        batchsize,
         per_prot,
     )
     save_from_generator(emb_path, per_prot, embeddings_generator)
