@@ -248,7 +248,7 @@ def save_from_generator(
         else:
             logger.info(f"Writing embeddings to {emb_path}")
             # With checked that the suffix can only be .npz
-            np.savez(emb_path, emb_dict)
+            np.savez(emb_path, **emb_dict)
     else:
         raise RuntimeError(
             f"The output file must end with .npz, .npy or .h5,"
