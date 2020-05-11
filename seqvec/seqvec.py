@@ -285,8 +285,10 @@ def create_arg_parser():
         "--output",
         required=True,
         type=Path,
-        help="A path to a file for saving the created embeddings. It either be an .npz or an .npy file. "
-        + "If you chose .npy, a .json file with the sequence ids will be created next to this file",
+        help="A path to a file for saving the created embeddings. " 
+        + "By default, a HDF (.h5) file will be written which should also be indicated by the chosen filename."
+        + "Only if you create per-protein embeddings, you can also write to numpy formats, i.e. .npy or .npz, which again should be indicated by the chosen filename."
+        + "If you choose to write a .npy file, a .json file with the sequence ids will be created next to the .npy file.",
     )
 
     # Path to model (optoinal)
@@ -306,8 +308,8 @@ def create_arg_parser():
         "--protein",
         type=bool,
         default=False,
-        help="Flag for summarizing embeddings from residue level to protein level "
-        + "via averaging. Default: False",
+        help="Flag (no arguments needed) for summarizing embeddings from residue level to protein level "
+        + "via averaging. Default: Not set (False)",
     )
 
     # Number of residues within one batch
