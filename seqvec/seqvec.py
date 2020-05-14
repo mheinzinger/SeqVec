@@ -221,7 +221,7 @@ def save_from_generator(
                     # noinspection PyUnboundLocalVariable
                     hf.create_dataset(sequence_id, data=embedding)
     elif emb_path.suffix == ".npz" or emb_path.suffix == ".npy":
-        if not per_protein:
+        if emb_path.suffix == ".npy" and not per_protein:
             raise RuntimeError(
                 "You need to sum up per protein (`--protein True`) to save as .npy array"
             )
@@ -285,7 +285,7 @@ def create_arg_parser():
         "--output",
         required=True,
         type=Path,
-        help="A path to a file for saving the created embeddings. " 
+        help="A path to a file for saving the created embeddings. "
         + "By default, a HDF (.h5) file will be written which should also be indicated by the chosen filename."
         + "Only if you create per-protein embeddings, you can also write to numpy formats, i.e. .npy or .npz, which again should be indicated by the chosen filename."
         + "If you choose to write a .npy file, a .json file with the sequence ids will be created next to the .npy file.",
