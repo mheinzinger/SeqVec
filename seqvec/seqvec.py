@@ -391,7 +391,10 @@ def main():
 
     if verbose:
         # Otherwise the default level is warning
-        logger.setLevel(logging.INFO)
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
+
+    device_name = "GPU" if torch.cuda.is_available() and not cpu_flag else "CPU"
+    logger.info(f"Running on the {device_name}")
 
     embeddings_generator = get_embeddings(
         seq_dir, model_dir, split_char, id_field, cpu_flag, layer, batchsize, per_prot,

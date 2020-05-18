@@ -1,8 +1,0 @@
-language: python
-
-python:
-  - "3.6"
-
-install: pip install --pre black==19.10b0
-
-script: black . --check
