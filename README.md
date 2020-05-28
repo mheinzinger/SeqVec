@@ -105,7 +105,9 @@ protein_embd = torch.tensor(embedding).sum(dim=0).mean(dim=0) # Vector with shap
 ```
 # FAQ
 **Torch version conflict**
-If you encounter a version conflict while pip-installing seqvec (```ERROR: No matching distribution found for torch<1.3,>=1.2 (from seqvec)```), creating a new conda-environment with Python 3.7 can resolve your issue. 
+If you encounter a version conflict while pip-installing seqvec (```ERROR: No matching distribution found for torch<1.3,>=1.2 (from seqvec)```), creating a new conda-environment with Python 3.7 can resolve your issue.
+**Slow embedding of very long sequences**
+We've added an option which automatically falls back to CPU mode if even single-sequence processing fails on GPU due to memory problems. While this allows you to embed also very long proteins, e.g. Q8WZ42 (Titin, ~35k residues), it slows down the embedding process.
 
 
 
