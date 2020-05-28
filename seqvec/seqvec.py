@@ -124,7 +124,7 @@ def process_embedding(
 
 
 def single_sequence_processing(
-    batch: List[Tuple[str, str]], model: ElmoEmbedder
+    batch: List[Tuple[str, str]], model: ElmoEmbedder, model_dir: Path
 ) -> EmbedderReturnType:
     """
     Single sequence processing in case of runtime error due to
@@ -136,7 +136,8 @@ def single_sequence_processing(
     """
     for sample_id, seq in batch:
         try:
-            embedding = model.embed_sentence(list(seq))
+            with torch.no_grad():
+                embedding = model.embed_sentence(list(seq))
             yield sample_id, embedding
 
         except RuntimeError as e:
@@ -146,10 +147,13 @@ def single_sequence_processing(
                 )
             )
             logger.error(
-                "Single sequence processing failed. Skipping this sequence. "
-                + "Consider splitting the sequence into smaller parts or using the CPU."
+                "Single sequence processing failed. Switching to CPU now. " + 
+                "This slows down the embedding process."
             )
-            yield sample_id, None
+            model = get_elmo_model(model_dir, cpu=True)
+            with torch.no_grad():
+                embedding = model.embed_sentence(list(seq))
+            yield sample_id, embedding
 
 
 def get_embeddings(
@@ -203,7 +207,8 @@ def get_embeddings(
         tokens = [list(seq) for _, seq in batch]
         batch_ids = [identifier for identifier, _ in batch]
         try:  # try to get the embedding for the current sequnce
-            embeddings = model.embed_batch(tokens)
+            with torch.no_grad():
+                embeddings = model.embed_batch(tokens)
             assert len(batch) == len(embeddings)
             for sequence_id, embedding in zip(batch_ids, embeddings):
                 yield sequence_id, process_embedding(embedding, per_protein, layer)
@@ -213,18 +218,9 @@ def get_embeddings(
             )
             logger.error("Sequences in the failing batch: {}".format(batch_ids))
             logger.error("Starting single sequence processing")
-            try:
-                for sequence_id, embedding in single_sequence_processing(batch, model):
-                    yield sequence_id, process_embedding(embedding, per_protein, layer)
-            except RuntimeError as e:
-                logger.error(
-                        "Error processing single_sequence: {}".format(len(batch), e)
-                    )
-                logger.error("Identifier of failing sequence: {}".format(batch_ids))
-                logger.error("Starting single sequence processing on CPU")
-                model = model.to('cpu')
-                for sequence_id, embedding in single_sequence_processing(batch, model):
-                    yield sequence_id, process_embedding(embedding, per_protein, layer)
+            for sequence_id, embedding in single_sequence_processing(batch, model, model_dir):
+                yield sequence_id, process_embedding(embedding, per_protein, layer)
+
 
         # Reset batch
         batch = list()
