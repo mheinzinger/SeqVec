@@ -101,6 +101,11 @@ def process_embedding(
     If you want to reduce each protein to a fixed-size vector, regardless of its
     length, you can average over dimension L.
     """
+    
+    if embedding is None:
+        # The generator code already showed an error
+        return None
+    
     if layer == "sum":
         # sum over residue-embeddings of all layers (3k->1k)
         embedding = embedding.sum(axis=0)
@@ -208,8 +213,18 @@ def get_embeddings(
             )
             logger.error("Sequences in the failing batch: {}".format(batch_ids))
             logger.error("Starting single sequence processing")
-            for sequence_id, embedding in single_sequence_processing(batch, model):
-                yield sequence_id, process_embedding(embedding, per_protein, layer)
+            try:
+                for sequence_id, embedding in single_sequence_processing(batch, model):
+                    yield sequence_id, process_embedding(embedding, per_protein, layer)
+            except RuntimeError as e:
+                logger.error(
+                        "Error processing single_sequence: {}".format(len(batch), e)
+                    )
+                logger.error("Identifier of failing sequence: {}".format(batch_ids))
+                logger.error("Starting single sequence processing on CPU")
+                model = model.to('cpu')
+                for sequence_id, embedding in single_sequence_processing(batch, model):
+                    yield sequence_id, process_embedding(embedding, per_protein, layer)
 
         # Reset batch
         batch = list()
