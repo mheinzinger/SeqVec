@@ -52,7 +52,7 @@ def read_fasta(
     sequences: Dict[str, str], fasta_path: Path, split_char: str, id_field: int
 ):
     """ Reads in fasta file containing multiple sequences.
-    Adds all sequencces to the `sequences` dictionary.
+    Adds all sequences to the `sequences` dictionary.
     """
 
     if fasta_path.suffix == ".gz":
@@ -309,7 +309,7 @@ def create_arg_parser():
         + "If you choose to write a .npy file, a .json file with the sequence ids will be created next to the .npy file.",
     )
 
-    # Path to model (optoinal)
+    # Path to model (optional)
     # noinspection PyTypeChecker
     parser.add_argument(
         "--model",
@@ -324,7 +324,7 @@ def create_arg_parser():
     # Create embeddings for a single protein or for all residues within a protein
     parser.add_argument(
         "--protein",
-        type=bool,
+        action="store_true",
         default=False,
         help="Flag (no arguments needed) for summarizing embeddings from residue level to protein level "
         + "via averaging. Default: Not set (False)",

@@ -33,7 +33,7 @@ We are working on a python package with more embedders and a commong interface t
 
 In the [bio_embeddings](https://github.com/sacdallago/bio_embeddings) github repo, you can find examples in the `notebooks` folder.
 
-For a general example on how to extract embeddings using ELMo, please check the 
+For a general example on how to extract embeddings using ELMo, please check the
 official allennlp ELMo website: [ELMo-Tutorial](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md)
 
 You can compute embeddings for a fasta file with the `seqvec` command. Add `--protein True` to get an embedding per protein instead of per residue.
@@ -106,9 +106,9 @@ protein_embd = torch.tensor(embedding).sum(dim=0).mean(dim=0) # Vector with shap
 # FAQ
 **Torch version conflict**
 If you encounter a version conflict while pip-installing seqvec (```ERROR: No matching distribution found for torch<1.3,>=1.2 (from seqvec)```), creating a new conda-environment with Python 3.7 can resolve your issue.
+
 **Slow embedding of very long sequences**
 We've added an option which automatically falls back to CPU mode if even single-sequence processing fails on GPU due to memory problems. While this allows you to embed also very long proteins, e.g. Q8WZ42 (Titin, ~35k residues), it slows down the embedding process.
-
 
 
 # Web-service for Predictions based on SeqVec
