@@ -7,7 +7,7 @@ import json
 import logging
 import urllib.request
 from pathlib import Path
-from typing import Dict, List, Tuple, Generator, Optional
+from typing import Dict, List, Tuple, Generator
 
 import h5py
 import numpy as np
@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
-EmbedderReturnType = Generator[Tuple[str, Optional[np.ndarray]], None, None]
+EmbedderReturnType = Generator[Tuple[str, np.ndarray], None, None]
 
 
 def get_elmo_model(model_dir: Path, cpu: bool) -> ElmoEmbedder:
@@ -101,11 +101,6 @@ def process_embedding(
     If you want to reduce each protein to a fixed-size vector, regardless of its
     length, you can average over dimension L.
     """
-    
-    if embedding is None:
-        # The generator code already showed an error
-        return None
-    
     if layer == "sum":
         # sum over residue-embeddings of all layers (3k->1k)
         embedding = embedding.sum(axis=0)
@@ -123,37 +118,61 @@ def process_embedding(
     return embedding
 
 
-def single_sequence_processing(
-    batch: List[Tuple[str, str]], model: ElmoEmbedder, model_dir: Path
+_cpu_elmo_model = None  # Cache the CPU model across invocations
+
+
+def embed_with_fallback(
+    batch: List[Tuple[str, str]], model: ElmoEmbedder, model_dir: Path,
 ) -> EmbedderReturnType:
-    """
-    Single sequence processing in case of runtime error due to
+    """ Tries to get the embeddings in this order:
+      * Full batch GPU
+      * Single Sequence GPU
+      * Single Sequence CPU
+
+    Single sequence processing is done in case of runtime error due to
     a) very long sequence or b) too large batch size
     If this fails, you might want to consider lowering batchsize and/or
     cutting very long sequences into smaller chunks
 
     Returns unprocessed embeddings
     """
-    for sample_id, seq in batch:
-        try:
-            with torch.no_grad():
-                embedding = model.embed_sentence(list(seq))
-            yield sample_id, embedding
+    global _cpu_elmo_model
 
-        except RuntimeError as e:
-            logger.error(
-                "RuntimeError for {} with {} residues: {}".format(
-                    sample_id, len(seq), e
+    # create List[List[str]] for batch-processing of ELMo
+    tokens = [list(seq) for _, seq in batch]
+    batch_ids = [identifier for identifier, _ in batch]
+
+    try:  # try to get the embedding for the current sequence
+        with torch.no_grad():
+            embeddings = model.embed_batch(tokens)
+        assert len(batch) == len(embeddings)
+        for sequence_id, embedding in zip(batch_ids, embeddings):
+            yield sequence_id, embedding
+    except RuntimeError as e:
+        logger.error("Error processing batch of {} sequences: {}".format(len(batch), e))
+        logger.error("Sequences in the failing batch: {}".format(batch_ids))
+        logger.error("Starting single sequence processing")
+
+        for sample_id, seq in batch:
+            try:
+                with torch.no_grad():
+                    embedding = model.embed_sentence(list(seq))
+                yield sample_id, embedding
+            except RuntimeError as e:
+                logger.error(
+                    "RuntimeError for {} with {} residues: {}".format(
+                        sample_id, len(seq), e
+                    )
                 )
-            )
-            logger.error(
-                "Single sequence processing failed. Switching to CPU now. " + 
-                "This slows down the embedding process."
-            )
-            model = get_elmo_model(model_dir, cpu=True)
-            with torch.no_grad():
-                embedding = model.embed_sentence(list(seq))
-            yield sample_id, embedding
+                logger.error(
+                    "Single sequence processing failed. Switching to CPU now. "
+                    + "This slows down the embedding process."
+                )
+                if not _cpu_elmo_model:
+                    _cpu_elmo_model = get_elmo_model(model_dir, cpu=True)
+                with torch.no_grad():
+                    embedding = _cpu_elmo_model.embed_sentence(list(seq))
+                yield sample_id, embedding
 
 
 def get_embeddings(
@@ -203,24 +222,9 @@ def get_embeddings(
         ):
             continue
 
-        # create List[List[str]] for batch-processing of ELMo
-        tokens = [list(seq) for _, seq in batch]
-        batch_ids = [identifier for identifier, _ in batch]
-        try:  # try to get the embedding for the current sequnce
-            with torch.no_grad():
-                embeddings = model.embed_batch(tokens)
-            assert len(batch) == len(embeddings)
-            for sequence_id, embedding in zip(batch_ids, embeddings):
-                yield sequence_id, process_embedding(embedding, per_protein, layer)
-        except RuntimeError as e:
-            logger.error(
-                "Error processing batch of {} sequences: {}".format(len(batch), e)
-            )
-            logger.error("Sequences in the failing batch: {}".format(batch_ids))
-            logger.error("Starting single sequence processing")
-            for sequence_id, embedding in single_sequence_processing(batch, model, model_dir):
-                yield sequence_id, process_embedding(embedding, per_protein, layer)
-
+        # Actually compute embeddings and postprocess
+        for sequence_id, embedding in embed_with_fallback(batch, model, model_dir):
+            yield sequence_id, process_embedding(embedding, per_protein, layer)
 
         # Reset batch
         batch = list()
