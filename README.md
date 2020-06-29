@@ -34,7 +34,7 @@ We are working on a python package with more embedders and a commong interface t
 In the [bio_embeddings](https://github.com/sacdallago/bio_embeddings) github repo, you can find examples in the `notebooks` folder.
 
 For a general example on how to extract embeddings using ELMo, please check the
-official allennlp ELMo website: [ELMo-Tutorial](https://github.com/allenai/allennlp/blob/master/tutorials/how_to/elmo.md)
+official allennlp ELMo website: [ELMo-Tutorial](https://github.com/allenai/bilm-tf)
 
 You can compute embeddings for a fasta file with the `seqvec` command. Add `--protein True` to get an embedding per protein instead of per residue.
 
