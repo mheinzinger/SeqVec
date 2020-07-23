@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2020-07-23
 
  * Instead of `--protein 1` it's now simply `--protein`
  * Automatic CPU fallback for sequences to long for the GPU
