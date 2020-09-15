@@ -22,21 +22,21 @@ The checkpoint for the pre-trained model is available at:
 [SeqVec-checkpoint](https://rostlab.org/~deepppi/seqvec_checkpoint.tar.gz)
 
 # Installation
-
+If you are interested in running seqvec, you can use the convenience `seqvec` pip package:
 ```
 pip install seqvec
 ```
 
-We are working on a python package with more embedders and a commong interface to them; see [bio_embeddings](https://github.com/sacdallago/bio_embeddings)
+Additionally, we provide a pipeline that integrates SeqVec, as well as other language models through a shared interface, see [bio_embeddings](https://github.com/sacdallago/bio_embeddings). The pipeline also includes secondary structure and subcellular localization prediction models, and more tools for embedding space visualization and embedding annotation transfer.
 
 # Example
 
-In the [bio_embeddings](https://github.com/sacdallago/bio_embeddings) github repo, you can find examples in the `notebooks` folder.
+In the [bio_embeddings](https://github.com/sacdallago/bio_embeddings) github repo, you can find several examples in the [`examples`](https://github.com/sacdallago/bio_embeddings/tree/develop/examples) folder.
 
 For a general example on how to extract embeddings using ELMo, please check the
 official ELMo implementation: [ELMo-Tutorial](https://github.com/allenai/bilm-tf)
 
-You can compute embeddings for a fasta file with the `seqvec` command. Add `--protein True` to get an embedding per protein instead of per residue.
+Via the `seqvec` pip package, you can compute embeddings for a fasta file with the `seqvec` command. Add `--protein True` to get an embedding per sequence instead of per residue.
 
 ```
 seqvec -i sequences.fasta -o embeddings.npz
