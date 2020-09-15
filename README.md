@@ -22,7 +22,7 @@ The checkpoint for the pre-trained model is available at:
 [SeqVec-checkpoint](https://rostlab.org/~deepppi/seqvec_checkpoint.tar.gz)
 
 # Installation
-If you are interested in running seqvec, you can use the convenienve `seqvec` pip package:
+If you are interested in running seqvec, you can use the convenience `seqvec` pip package:
 ```
 pip install seqvec
 ```
